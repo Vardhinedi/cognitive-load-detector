@@ -1,0 +1,4 @@
+node_modules/
+popup-react/node_modules/
+dist/
+popup-react/dist/
