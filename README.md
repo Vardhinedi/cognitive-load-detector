@@ -16,7 +16,8 @@ Predicts user cognitive load using mouse, typing, and scroll behavior.
 - Python + scikit-learn (ML)
 
 ## Demo
-(Add screenshots here)
+
+![Cognitive Load Screenshot](./cld%20screenshot.jpg)
 
 ## How to Run
 
