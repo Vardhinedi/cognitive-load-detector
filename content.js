@@ -1,3 +1,6 @@
+// -------- GLOBAL DATASET (optional for logging) --------
+let dataset = [];
+
 // -------- Mouse Tracking --------
 let lastX = 0;
 let lastY = 0;
@@ -36,29 +39,75 @@ document.addEventListener("keydown", () => {
   lastKeyTime = currentTime;
 });
 
+// -------- Scroll Tracking --------
+let lastScrollY = window.scrollY;
+let lastScrollTime = Date.now();
+
+let scrollSpeeds = [];
+
+window.addEventListener("scroll", () => {
+  const currentTime = Date.now();
+
+  const dy = Math.abs(window.scrollY - lastScrollY);
+  const dt = currentTime - lastScrollTime;
+
+  if (dt === 0) return;
+
+  const speed = dy / dt;
+
+  scrollSpeeds.push(speed);
+
+  lastScrollY = window.scrollY;
+  lastScrollTime = currentTime;
+});
+
+// -------- Utility --------
+function variance(arr) {
+  if (arr.length === 0) return 0;
+  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+  return arr.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / arr.length;
+}
+
+// -------- ML Prediction (based on trained model) --------
+function predictLoad(features) {
+  const {
+    avgVelocity,
+    varVelocity,
+    avgInterval,
+    varTyping
+  } = features;
+
+  let score = 0;
+
+  // Learned weights from your model
+  score += avgVelocity * 0.4;
+  score += varVelocity * 0.3;
+  score += avgInterval * 0.0005;
+  score += varTyping * 0.00001;
+
+  if (score > 2.5) return "Medium Load";
+  return "Focused";
+}
+
 // -------- UI Adaptation --------
 function applyUI(state) {
-  if (state === "High Load") {
-    document.body.style.filter = "brightness(70%) grayscale(20%)";
-  } else if (state === "Medium Load") {
+  if (state === "Medium Load") {
     document.body.style.filter = "brightness(85%)";
   } else {
     document.body.style.filter = "none";
   }
 }
 
-// -------- 🔥 State Smoothing (NEW) --------
+// -------- State Smoothing --------
 let stateHistory = [];
 
 function getStableState(currentState) {
   stateHistory.push(currentState);
 
-  // keep last 3 states
   if (stateHistory.length > 3) {
     stateHistory.shift();
   }
 
-  // majority voting
   const count = {};
   stateHistory.forEach((s) => {
     count[s] = (count[s] || 0) + 1;
@@ -69,56 +118,77 @@ function getStableState(currentState) {
   );
 }
 
-// -------- Aggregation + Cognitive Load --------
+// -------- Aggregation --------
 setInterval(() => {
   let avgVelocity = 0;
   let avgInterval = 0;
+  let avgScroll = 0;
+
+  let varVelocity = variance(velocities);
+  let varTyping = variance(keyIntervals);
+  let varScroll = variance(scrollSpeeds);
 
   if (velocities.length > 0) {
-    avgVelocity =
-      velocities.reduce((a, b) => a + b, 0) / velocities.length;
+    avgVelocity = velocities.reduce((a, b) => a + b, 0) / velocities.length;
   }
 
   if (keyIntervals.length > 0) {
-    avgInterval =
-      keyIntervals.reduce((a, b) => a + b, 0) / keyIntervals.length;
+    avgInterval = keyIntervals.reduce((a, b) => a + b, 0) / keyIntervals.length;
   }
 
-  let loadScore = 0;
+  if (scrollSpeeds.length > 0) {
+    avgScroll = scrollSpeeds.reduce((a, b) => a + b, 0) / scrollSpeeds.length;
+  }
 
-  // Typing signals
-  if (avgInterval > 800) loadScore += 1;
-  if (avgInterval > 2000) loadScore += 1;
+  // -------- FILTER NOISE --------
+  if (avgVelocity === 0 && avgInterval === 0 && avgScroll === 0) {
+    return; // skip useless sample
+  }
 
-  // Mouse signals
-  if (avgVelocity < 0.5) loadScore += 1;
-  if (avgVelocity < 0.2) loadScore += 1;
+  // -------- CLAMP VALUES --------
+  avgVelocity = Math.min(avgVelocity, 20);
+  varVelocity = Math.min(varVelocity, 100);
+  avgInterval = Math.min(avgInterval, 2000);
 
-  // -------- Raw State --------
-  let rawState = "Focused";
-  if (loadScore >= 3) rawState = "High Load";
-  else if (loadScore === 2) rawState = "Medium Load";
+  // -------- FEATURES --------
+  const features = {
+    avgVelocity,
+    varVelocity,
+    avgInterval,
+    varTyping,
+    avgScroll,
+    varScroll
+  };
 
-  // -------- 🔥 Apply Smoothing --------
+  // -------- ML Prediction --------
+  let rawState = predictLoad(features);
+
   let state = getStableState(rawState);
 
-  console.log("Raw:", rawState, "| Stable:", state, "| Score:", loadScore);
+  console.log("State:", state, "| Features:", features);
 
-  // Apply UI
   applyUI(state);
 
-  // Save to storage
-  chrome.storage.local.set(
-    {
-      cognitiveState: state,
-      cognitiveScore: loadScore
-    },
-    () => {
-      console.log("✅ Data saved to storage:", state, loadScore);
-    }
-  );
+  // -------- Save to storage --------
+  chrome.storage.local.set({
+    cognitiveState: state
+  });
 
-  // Reset buffers
+  // -------- Save dataset (optional) --------
+  dataset.push({
+    ...features,
+    label: state === "Medium Load" ? 1 : 0
+  });
+
+  if (dataset.length > 200) dataset.shift();
+
+  // Reset
   velocities = [];
   keyIntervals = [];
+  scrollSpeeds = [];
 }, 5000);
+
+// -------- EXPORT DATASET --------
+setInterval(() => {
+  console.log("FULL DATASET:", JSON.stringify(dataset));
+}, 30000);

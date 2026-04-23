@@ -1,37 +1,22 @@
-# CLD ( No Sensor)
+# Cognitive Load Detection (No Sensors)
 
-A browser extension that estimates user cognitive load using interaction patterns such as mouse movement and typing behavior—without requiring hardware sensors.
-
----
+## Overview
+Predicts user cognitive load using mouse, typing, and scroll behavior.
 
 ## Features
-- Real-time mouse & typing tracking
-- Feature engineering (velocity, typing intervals)
-- Cognitive load scoring (Focused / Medium / High)
-- Dynamic UI adaptation (brightness, grayscale)
-- React-based dashboard for visualization
-
----
+- Real-time behavior tracking
+- Feature engineering (velocity, variance)
+- ML-based prediction (Random Forest)
+- Dynamic UI adaptation
+- React dashboard
 
 ## Tech Stack
-- React (Vite)
-- Chrome Extension (Manifest v3)
-- JavaScript
-
----
-
-## How it Works
-1. Capture interaction signals  
-2. Aggregate features every 5 seconds  
-3. Compute cognitive load score  
-4. Adapt UI + display in dashboard  
-
----
+- JavaScript (Chrome Extension)
+- React (Frontend)
+- Python + scikit-learn (ML)
 
 ## Demo
-(Add screenshot here later)
-
----
+(Add screenshots here)
 
 ## How to Run
 
@@ -39,4 +24,4 @@ A browser extension that estimates user cognitive load using interaction pattern
 2. Go to `chrome://extensions/`  
 3. Enable **Developer Mode**  
 4. Click **Load unpacked**  
-5. Select this folder  
+5. Select this folder 

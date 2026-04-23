@@ -1,4 +1,20 @@
+# Node modules (React)
 node_modules/
+
+# Build cache (React)
 popup-react/node_modules/
-dist/
 popup-react/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Python (ML)
+__pycache__/
+*.pyc
+
+# Dataset (optional)
+dataset.json
